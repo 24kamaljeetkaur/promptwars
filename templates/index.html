@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromptWars - AI Prompt Battle Arena</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>⚔️ PROMPTWARS ARENA ⚔️</h1>
+        <p class="subtitle">Which prompt wins? Click to vote!</p>
+
+        <div class="battle-arena">
+            <div class="prompt-card" id="prompt1">
+                <div class="prompt-content">
+                    <p id="prompt1-text">Loading...</p>
+                </div>
+                <button class="vote-btn win-btn" onclick="vote('prompt1')">🏆 VOTE WINNER 🏆</button>
+            </div>
+            
+            <div class="vs">VS</div>
+            
+            <div class="prompt-card" id="prompt2">
+                <div class="prompt-content">
+                    <p id="prompt2-text">Loading...</p>
+                </div>
+                <button class="vote-btn win-btn" onclick="vote('prompt2')">🏆 VOTE WINNER 🏆</button>
+            </div>
+        </div>
+
+        <button class="next-btn" onclick="loadBattle()">⚡ NEXT BATTLE ⚡</button>
+
+        <div class="stats-section">
+            <h2>📊 LEADERBOARD</h2>
+            <div id="stats-container"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentPrompts = {};
+
+        async function loadBattle() {
+            const response = await fetch('/get_random_prompts');
+            const data = await response.json();
+            
+            currentPrompts = {
+                prompt1: data.prompt1,
+                prompt2: data.prompt2
+            };
+            
+            document.getElementById('prompt1-text').innerText = data.prompt1.text;
+            document.getElementById('prompt2-text').innerText = data.prompt2.text;
+            
+            loadStats();
+        }
+
+        async function vote(winnerId) {
+            const winner = currentPrompts[winnerId];
+            const loserId = winnerId === 'prompt1' ? 'prompt2' : 'prompt1';
+            const loser = currentPrompts[loserId];
+            
+            await fetch('/vote', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    winner_id: winner.id,
+                    loser_id: loser.id
+                })
+            });
+            
+            // Animation effect
+            const winnerCard = document.getElementById(winnerId);
+            winnerCard.style.transform = 'scale(1.05)';
+            setTimeout(() => {
+                winnerCard.style.transform = 'scale(1)';
+                loadBattle();
+            }, 500);
+        }
+
+        async function loadStats() {
+            const response = await fetch('/stats');
+            const data = await response.json();
+            
+            const statsContainer = document.getElementById('stats-container');
+            if(data.leaderboard.length === 0) {
+                statsContainer.innerHTML = '<p>No battles yet! Start voting!</p>';
+                return;
+            }
+            
+            let html = '<table class="leaderboard-table">';
+            html += '<tr><th>Rank</th><th>Prompt</th><th>Wins</th></tr>';
+            data.leaderboard.forEach((prompt, index) => {
+                html += `<tr>
+                            <td>${index + 1}</td>
+                            <td>${prompt.text.substring(0, 60)}...</td>
+                            <td>🏆 ${prompt.wins}</td>
+                         </tr>`;
+            });
+            html += '</table>';
+            html += `<p class="total-battles">Total Battles: ${data.total_battles}</p>`;
+            statsContainer.innerHTML = html;
+        }
+
+        loadBattle();
+    </script>
+</body>
+</html>
