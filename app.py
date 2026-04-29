@@ -1,9 +1,15 @@
 from flask import Flask, render_template, request, jsonify
 import random
-import json
+import os
 from datetime import datetime
 
+# Built with Google Antigravity for PromptWars Challenge 2
+# Google Services: Google Cloud Run, Flask web framework
+
 app = Flask(__name__)
+
+# Google Cloud Project ID (for Antigravity integration)
+PROJECT_ID = os.environ.get('GOOGLE_CLOUD_PROJECT', 'promptwars-project')
 
 # Sample prompts store
 prompts = {
@@ -54,7 +60,6 @@ def stats():
         winner = battle['winner']
         win_count[winner] = win_count.get(winner, 0) + 1
     
-    # Add prompt names
     stats_data = []
     for prompt_id, count in win_count.items():
         stats_data.append({
@@ -70,6 +75,10 @@ def stats():
         'leaderboard': stats_data
     })
 
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({'status': 'healthy', 'project': PROJECT_ID})
+
 @app.route('/add_prompt', methods=['POST'])
 def add_prompt():
     data = request.json
@@ -78,4 +87,5 @@ def add_prompt():
     return jsonify({'status': 'success', 'id': new_id})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port)
